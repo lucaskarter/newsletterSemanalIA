@@ -190,8 +190,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        2192,
-        -512
+        2320,
+        -848
       ],
       "id": "22a1a04a-f5ed-476c-be17-8a7f2ed3ef26",
       "name": "Postar no Linkedin"
@@ -316,7 +316,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        400,
+        416,
         -160
       ],
       "id": "0b4e6f43-6449-469a-8aae-7642ca7ed707",
@@ -354,7 +354,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        1504,
+        1520,
         -688
       ],
       "id": "0e768453-746a-43b9-9e5e-f760ffcd3cd3",
@@ -396,7 +396,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1872,
+        1856,
         -832
       ],
       "id": "c7eb322a-fce6-4c1d-9613-6f7e431cd588",
@@ -408,7 +408,7 @@
         "fromEmail": "lucas.silva@sou.inteli.edu.br",
         "toEmail": "lucasmembros@gmail.com",
         "subject": "⚠️ Aprovação Necessária: Post do LinkedIn",
-        "html": "=Olá! Aqui está o rascunho do post do LinkedIn desta semana:\n<br><br>\n<i>{{ $json.text }}</i> <br><br>\nSe estiver tudo certo e você quiser postar agora mesmo, clique no link abaixo:\n<br><br>\n<a href=\"{{ $resumeWebhookUrl }}\" style=\"background-color: #0a66c2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">✅ APROVAR E POSTAR NO LINKEDIN</a>\n<br><br>\nSe não gostar, basta ignorar este e-mail e o post não será feito.",
+        "html": "=Olá! Aqui está o rascunho do post do LinkedIn desta semana:\n<br><br>\n<i>{{ $json.text }}</i>\n<br><br>\nSe estiver tudo certo e você quiser postar agora mesmo, clique no botão abaixo:\n<br><br>\n<a href=\"{{ $resumeWebhookUrl }}?approved=true\" style=\"background-color:#0a66c2;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;margin-right:10px;\">✅ APROVAR E POSTAR</a>\n<br><br>\nSe não quiser postar, clique aqui:\n<br><br>\n<a href=\"{{ $resumeWebhookUrl }}?approved=false\" style=\"background-color:#cc0000;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;\">❌ REJEITAR POST</a>",
         "options": {}
       },
       "type": "n8n-nodes-base.emailSend",
@@ -447,8 +447,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2000,
-        -512
+        2128,
+        -848
       ],
       "id": "57082f97-a9e1-4f5d-b71c-c325962e8bc7",
       "name": "Formatar Post LinkedIn"
@@ -488,7 +488,7 @@
       "parameters": {
         "content": "## Envio de post para o LinkedIn\n**Human In The Loop com confirmação pelo email**",
         "height": 560,
-        "width": 1072,
+        "width": 1232,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
@@ -541,6 +541,51 @@
       ],
       "id": "37cf001f-4885-4287-81d3-b41d80a0ca90",
       "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "33f63a6e-2133-486a-b242-393422529a99",
+              "leftValue": "={{ $json.query.approved }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1984,
+        -528
+      ],
+      "id": "076e4552-0313-4823-a399-68aa32901aba",
+      "name": "Aprovar ou Rejeitar?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2224,
+        -528
+      ],
+      "id": "e29e4a6a-93f7-4357-836b-b19a2f336f21",
+      "name": "Confirmar execução1"
     }
   ],
   "pinData": {},
@@ -604,12 +649,12 @@
       "main": [
         [
           {
-            "node": "Agrupar por categoria",
+            "node": "Juntar Artigos",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Juntar Artigos",
+            "node": "Agrupar por categoria",
             "type": "main",
             "index": 0
           }
@@ -745,7 +790,7 @@
       "main": [
         [
           {
-            "node": "Formatar Post LinkedIn",
+            "node": "Aprovar ou Rejeitar?",
             "type": "main",
             "index": 0
           }
@@ -800,6 +845,24 @@
       "main": [
         []
       ]
+    },
+    "Aprovar ou Rejeitar?": {
+      "main": [
+        [
+          {
+            "node": "Formatar Post LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmar execução1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -807,7 +870,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "203b8e99-40d3-4ab5-912a-01e0d9cc96d4",
+  "versionId": "691265ad-68b2-49a0-bbb1-3005da066282",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "3b3ebd04b10b210a238c88e9be807b7cb167b61171f6dade97696b02267a8808"
