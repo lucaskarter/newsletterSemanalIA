@@ -1,6 +1,6 @@
-#Intelligence Newsletter — Sistema de Agregação de Notícias de IA
+# Intelligence Newsletter — Sistema de Agregação de Notícias de IA
 
-Newsletter semanal automatizada com curadoria de notícias de Inteligência Artificial, gerada e enviada automaticamente toda segunda-feira e quinta-feira via n8n.
+## Newsletter semanal automatizada com curadoria de notícias de Inteligência Artificial, gerada e enviada automaticamente toda segunda-feira e quinta-feira via n8n.
 
 
   **Sobre o Projeto**
@@ -11,9 +11,7 @@ O sistema resolve o problema da fragmentação de informações no universo da I
 
  **Funcionalidades**
 
-*Categorização inteligente via IA (Groq) nas categorias: IA Generativa / Aprendizado de Máquina / Visão Computacional / Ética em IA / Aplicações em Setores
-
-
+* Categorização inteligente via IA nas categorias: IA Generativa / Aprendizado de Máquina / Visão Computacional / Ética em IA / Aplicações em Setores
 * Resumo em português com palavras-chave em negrito
 * Título criativo gerado por IA para cada artigo
 * Seção "Hypes do Momento" com os repositórios de IA mais populares do GitHub
@@ -25,37 +23,54 @@ O sistema resolve o problema da fragmentação de informações no universo da I
 **Pré-requisitos**
 
 * Docker instalado
-* Conta no Groq 
+  
+* Conta no Groq
+  
 * Conta Gmail com Senha de App configurada
+ 
 * Conta de desenvolvedor no LinkedIn
+  
 * Conta no GitHub (para a API pública)
 
+  
 **Configurar as Credenciais**
 
 *1. Groq API*
 
 Acesse console.groq.com
+
 Crie uma API Key
+
 No n8n, vá em Credentials → Add Credential → Groq
+
 Cole sua API Key
+
 
 *2. Gmail SMTP*
 
 Ative a verificação em 2 etapas no Google
+
 Crie uma Senha de App
+
 No n8n, configure o nó Send Email com:
-  Host: smtp.gmail.com
-  Port: 465
-  User: seu e-mail
-  Password: senha de app gerada
+
+  Host: smtp.gmail.com, 
+  Port: 465, 
+  User: seu e-mail, 
+  Password: senha de app gerada 
 
 *3. LinkedIn API*
 
 Acesse linkedin.com/developers
+
 Crie um app e adicione o produto "Share on LinkedIn"
+
 Configure o redirect URI: http://localhost:5678/rest/oauth2-credential/callback
+
 Gere um Access Token seguindo o fluxo OAuth2
+
 Configure o Header de autorização no nó HTTP Request do LinkedIn
+
 
 **Número de Artigos**
 
@@ -69,4 +84,5 @@ Este projeto foi desenvolvido como trabalho acadêmico para a Inteli Academy.
 Lucas Andrade Silva
 
 LinkedIn: [lucasandrade](https://www.linkedin.com/in/lucas-andrade-sva/)
+
 GitHub: [lucaskarter](https://github.com/lucaskarter)
