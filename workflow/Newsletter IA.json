@@ -607,6 +607,11 @@
             "node": "Agrupar por categoria",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Juntar Artigos",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -802,7 +807,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "bb5557bb-b8e6-4309-9c99-19ab9168da17",
+  "versionId": "203b8e99-40d3-4ab5-912a-01e0d9cc96d4",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "3b3ebd04b10b210a238c88e9be807b7cb167b61171f6dade97696b02267a8808"
