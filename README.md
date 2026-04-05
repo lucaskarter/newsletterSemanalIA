@@ -9,6 +9,8 @@ O Intelligence Newsletter é um workflow automatizado desenvolvido no n8n para a
 
 O sistema resolve o problema da fragmentação de informações no universo da Inteligência Artificial, entregando um resumo semanal curado diretamente na caixa de entrada dos membros da comunidade.
 
+<br>
+
  **Funcionalidades**
 
 * Categorização inteligente via IA nas categorias: IA Generativa / Aprendizado de Máquina / Visão Computacional / Ética em IA / Aplicações em Setores
@@ -19,6 +21,7 @@ O sistema resolve o problema da fragmentação de informações no universo da I
 * Envio automático por e-mail toda segunda-feira e quinta-feira às 8h
 * Post automático no LinkedIn com aprovação humana via e-mail
 
+<br>
 
 **Pré-requisitos**
 
@@ -32,7 +35,8 @@ O sistema resolve o problema da fragmentação de informações no universo da I
   
 * Conta no GitHub (para a API pública)
 
-  
+<br>
+
 **Configurar as Credenciais**
 
 *1. Groq API*
@@ -45,6 +49,7 @@ No n8n, vá em Credentials → Add Credential → Groq
 
 Cole sua API Key
 
+<br>
 
 *2. Gmail SMTP*
 
@@ -59,6 +64,8 @@ No n8n, configure o nó Send Email com:
   User: seu e-mail, 
   Password: senha de app gerada 
 
+<br>
+
 *3. LinkedIn API*
 
 Acesse linkedin.com/developers
@@ -71,6 +78,7 @@ Gere um Access Token seguindo o fluxo OAuth2
 
 Configure o Header de autorização no nó HTTP Request do LinkedIn
 
+<br>
 
 **Número de Artigos**
 
