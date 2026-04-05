@@ -1,0 +1,817 @@
+{
+  "name": "Newsletter IA",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1,
+                4
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "4b8b9584-4af3-4da0-83a9-058477400759",
+      "name": "Gatilho da Segunda-feira"
+    },
+    {
+      "parameters": {
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; n8n-bot/1.0)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        16
+      ],
+      "id": "62b50db8-e4f6-4690-a83a-bc0c9c60e867",
+      "name": "Buscar TechCrunch AI"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst artigos = items.map(item => {\n  const xml = item.json.data || '';\n  \n  // Isola cada notícia separadamente\n  const xmlItems = [...xml.matchAll(/<item>(.*?)<\\/item>/gs)].map(m => m[1]);\n  \n  return xmlItems.map(xmlItem => {\n    // Busca dados textuais\n    const tituloMatch = xmlItem.match(/<title><!\\[CDATA\\[(.*?)\\]\\]><\\/title>/s) || xmlItem.match(/<title>(.*?)<\\/title>/s);\n    const linkMatch = xmlItem.match(/<link>(https?:\\/\\/[^<]+)<\\/link>/);\n    const descMatch = xmlItem.match(/<description><!\\[CDATA\\[(.*?)\\]\\]><\\/description>/s) || xmlItem.match(/<description>(.*?)<\\/description>/s);\n    const dateMatch = xmlItem.match(/<pubDate>(.*?)<\\/pubDate>/);\n    \n    let imagemUrl = '';\n\n    // Tenta encontrar a imagem original no XML\n    const regexImagensBrutas = /https?:\\/\\/[^\"'\\s><\\[\\]]+(?:jpg|jpeg|png|webp)[^\"'\\s><\\[\\]]*/gi;\n    const todasAsImagens = xmlItem.match(regexImagensBrutas) || [];\n    const imagensValidas = todasAsImagens.filter(url => \n      !url.includes('gravatar.com') && \n      !url.includes('w3.org') &&\n      !url.includes('icon') &&\n      !url.includes('logo')\n    );\n\n    if (imagensValidas.length > 0) {\n      imagemUrl = imagensValidas[0];\n    } else {\n      const mediaMatch = xmlItem.match(/<media:(?:content|thumbnail)[^>]+url=[\"']([^\"']+)[\"']/i);\n      if (mediaMatch) imagemUrl = mediaMatch[1];\n    }\n\n    if (imagemUrl) {\n      imagemUrl = imagemUrl.replace(/&amp;/g, '&');\n    }\n\n    const tituloFinal = tituloMatch ? tituloMatch[1].trim() : 'Artificial Intelligence';\n\n    // Imagem Dinâmica\n    if (!imagemUrl) {\n      const promptBusca = `Modern technology, artificial intelligence concept, ${tituloFinal}`;\n      imagemUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptBusca)}?width=600&height=350&nologo=true`;\n    }\n\n    return {\n      titulo: tituloFinal,\n      link: linkMatch ? linkMatch[1].trim() : '',\n      descricao: descMatch ? descMatch[1].replace(/<[^>]+>/g, '').slice(0, 300).trim() : '',\n      dataPublicacao: dateMatch ? dateMatch[1].trim() : '',\n      imagemUrl: imagemUrl, \n      categoria: 'Sem Categoria',\n      fonte: 'TechCrunch'\n    };\n  });\n});\n\n// Limpa itens inválidos e restringe a saída aos 5 primeiros artigos\nconst flat = artigos.flat()\n  .filter(a => a.titulo !== 'Artificial Intelligence')\n  .slice(0, 8);\n\nreturn flat.map(a => ({ json: a }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        -320
+      ],
+      "id": "e4ff3557-3dc5-4ddc-9160-74d0b1e3ad72",
+      "name": "Filtrar Artigos da Semana"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um especialista em Inteligência Artificial e redator criativo. Analise o artigo abaixo e retorne SOMENTE um JSON válido, sem explicações, sem markdown, sem texto adicional.\n\nTítulo: {{ $json.titulo }}\nDescrição: {{ $json.descricao }}\nLink: {{ $json.link }}\nData: {{ $json.dataPublicacao }}\nImagem: {{ $json.imagemUrl }}\n\nRetorne SOMENTE este JSON preenchido:\n{\n\"titulo\": \"título original do artigo\",\n\"tituloTraduzido\": \"tradução do título original para português brasileiro\",\n\"tituloCriativo\": \"título informal, curto e impactante em português, como uma manchete de revista jovem, máximo 8 palavras\",\n\"resumo\": \"resumo em português com 2 a 3 frases, coloque negrito nas palavras-chave mais importantes usando markdown palavra\",\n\"categoria\": \"IA Generativa ou Aprendizado de Máquina ou Visão Computacional ou Ética em IA ou Aplicações em Setores\",\n\"link\": \"link original do artigo\",\n\"dataPublicacao\": \"data original do artigo\",\n\"imagemUrl\": \"A URL exata da imagem que foi fornecida acima\",\n\"tendencia\": \"uma frase curta sobre a tendência que este artigo representa\",\n\"imagemQuery\": \"3 palavras em inglês para buscar uma imagem representativa deste artigo no Unsplash\",\n\"palavrasChave\": [\"palavra1\", \"palavra2\", \"palavra3\"]\n}\n",
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        960,
+        0
+      ],
+      "id": "1cca1a8c-6e0f-4e99-9155-cb4dd9e60759",
+      "name": "Categorizar e resumir com IA",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        976,
+        144
+      ],
+      "id": "efe7404e-895c-4ce5-83dd-d8c75f640283",
+      "name": "Groq Chat Model",
+      "retryOnFail": false,
+      "credentials": {
+        "groqApi": {
+          "id": "vHav0GxRV8No9qwC",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst resultado = [];\n\nfor (const item of items) {\n  try {\n    // 1. MELHORIA: Busca o texto de forma mais robusta, cobrindo o padrão do LangChain/Groq\n    let texto = item.json.message?.content || item.json.text || item.json.output || item.json.content || '';\n    \n    // Converte para string por segurança caso a IA retorne um objeto direto\n    if (typeof texto !== 'string') {\n        texto = JSON.stringify(texto);\n    }\n    \n    // Remove possíveis markdown code blocks\n    texto = texto.replace(/```json/g, '').replace(/```/g, '').trim();\n    \n    // Faz o parse do JSON\n    const parsed = JSON.parse(texto);\n    \n    resultado.push({ json: parsed });\n  } catch (e) {\n    // 2. MELHORIA: Mantém a estrutura com imagemUrl para não quebrar o HTML seguinte\n    resultado.push({\n      json: {\n        titulo: 'Erro ao processar',\n        tituloCriativo: 'Erro no Processamento',\n        resumo: 'Não foi possível processar este artigo com a IA.',\n        categoria: 'Sem Categoria',\n        link: '',\n        dataPublicacao: '',\n        tendencia: '',\n        imagemUrl: '[https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=600&auto=format&fit=crop](https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=600&auto=format&fit=crop)', // Imagem de segurança\n        erro: e.message\n      }\n    });\n  }\n}\n\nreturn resultado;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -304
+      ],
+      "id": "3aec5f1f-5fbd-4837-9582-74557f909935",
+      "name": "Parsear resposta da IA"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Pega artigos do TechCrunch (que agora vêm pela linha contínua)\nconst artigosNormais = items.filter(i => i.json.titulo && i.json.titulo !== '');\n\n// Puxa os dados especificamente do seu novo nó de IA\nconst githubItems = $('IA copy github').all();\nconst githubOriginal = $('Extrair dados GitHub').all();\n\nconst categorias = {\n  'IA Generativa': [],\n  'Aprendizado de Máquina': [],\n  'Visão Computacional': [],\n  'Ética em IA': [],\n  'Aplicações em Setores': [],\n  'Sem Categoria': []\n};\n\nfor (const item of artigosNormais) {\n  const artigo = item.json;\n  const cat = artigo.categoria || 'Sem Categoria';\n  if (categorias[cat]) {\n    categorias[cat].push(artigo);\n  } else {\n    categorias['Sem Categoria'].push(artigo);\n  }\n}\n\nconst resumoPorCategoria = Object.entries(categorias)\n  .filter(([_, artigos]) => artigos.length > 0)\n  .map(([categoria, artigos]) => ({\n    categoria,\n    total: artigos.length,\n    artigos\n  }));\n\n// Gera hypes pegando a frase inteligente da IA\nconst hypes = githubItems.slice(0, 5).map((item, i) => {\n  const original = githubOriginal[i] ? githubOriginal[i].json : {};\n  \n  const textoIA = (item.json.text || item.json.output || item.json.titulo || '').trim();\n  const textoLimpo = textoIA.replace(/\\*\\*(.*?)\\*\\*/g, '$1').slice(0, 250);\n\n  return {\n    prefixo: ['🔥 Em alta:', '⭐ Trending:', '🚀 Destaque:', '💡 Repositório:', '👾 Open Source:'][i] || '🔥',\n    texto: textoLimpo,\n    link: original.link || original.html_url || '',\n    estrelas: original.estrelas || 0\n  };\n});\n\n// Retorna tudo pronto para o HTML\nreturn [{\n  json: {\n    resumo: resumoPorCategoria,\n    hypes: hypes\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        16
+      ],
+      "id": "735c72a5-6888-4ab7-8119-c1ee051c1775",
+      "name": "Agrupar por categoria"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst categorias = data.resumo || []; \nconst hypes = data.hypes || [];\n\nconst totalArtigos = data.totalArtigos || categorias.reduce((soma, cat) => soma + cat.total, 0);\nconst geradoEm = data.geradoEm || new Date().toLocaleDateString('pt-BR');\n\nconst coresCategoria = {\n  'IA Generativa':          { bg: '#5C3D8F', light: '#EFE9F7', tag: '#D9CCF0' },\n  'Aprendizado de Máquina': { bg: '#1B5E7B', light: '#E3F2F9', tag: '#B8DCEA' },\n  'Visão Computacional':    { bg: '#2D6A4F', light: '#E8F5EE', tag: '#B7DFC9' },\n  'Ética em IA':            { bg: '#8B5E3C', light: '#F5EDE4', tag: '#DFC4A8' },\n  'Aplicações em Setores':  { bg: '#8B3A3A', light: '#F5E8E8', tag: '#DFB8B8' },\n  'Sem Categoria':          { bg: '#5C5042', light: '#F0EBE3', tag: '#D4C4B0' }\n};\n\n// --- DICIONÁRIO VISUAL PREMIUM ---\nconst bibliotecaVisual = {\n  'openai': 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=600&q=80',\n  'chatgpt': 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=600&q=80',\n  'google': 'https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?auto=format&fit=crop&w=600&q=80',\n  'gemini': 'https://images.unsplash.com/photo-1707488938153-61b4f4206584?auto=format&fit=crop&w=600&q=80',\n  'meta': 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=600&q=80',\n  'facebook': 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=600&q=80',\n  'anthropic': 'https://images.unsplash.com/photo-1684369175833-0a406bc9f015?auto=format&fit=crop&w=600&q=80', \n  'claude': 'https://images.unsplash.com/photo-1684369175833-0a406bc9f015?auto=format&fit=crop&w=600&q=80',\n  'microsoft': 'https://images.unsplash.com/photo-1633419461186-7d40a38105ec?auto=format&fit=crop&w=600&q=80',\n  'apple': 'https://images.unsplash.com/photo-1611186871348-b1ec696e5237?auto=format&fit=crop&w=600&q=80',\n  'nvidia': 'https://images.unsplash.com/photo-1592833159155-c62df1b65634?auto=format&fit=crop&w=600&q=80',\n  'github': 'https://images.unsplash.com/photo-1618401471353-b98afee0b2ee?auto=format&fit=crop&w=600&q=80',\n  \n  'IA Generativa': 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80',\n  'Aprendizado de Máquina': 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&w=600&q=80',\n  'Visão Computacional': 'https://images.unsplash.com/photo-1527430253228-e93688616381?auto=format&fit=crop&w=600&q=80',\n  'Ética em IA': 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=600&q=80',\n  'Aplicações em Setores': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80',\n  'Sem Categoria': 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80'\n};\n\nfunction converterNegrito(texto) {\n  if (!texto) return '';\n  return texto.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');\n}\n\nfunction gerarHypes() {\n  if (!hypes || hypes.length === 0) return '';\n  return `\n    <div style=\"background:#FAF7F2;border-radius:16px;padding:28px 32px;margin-bottom:40px;border-left:5px solid #A67C52;box-shadow:0 2px 12px rgba(44,26,14,0.08);\">\n      \n      <div style=\"margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #EDE8DC;\">\n        <span style=\"font-size:28px;\">🔥</span>\n        <h2 style=\"font-family:Georgia,serif;font-size:20px;font-weight:700;color:#2C1A0E;margin:4px 0 2px 0;\">Hypes do momento</h2>\n        <p style=\"font-size:12px;color:#A0856C;margin:0;text-transform:uppercase;letter-spacing:1px;\">Repositórios em alta no GitHub esta semana</p>\n      </div>\n\n      ${hypes.map((h, i) => {\n        const textoLimpo = (h.texto || '').replace(/\\*\\*(.*?)\\*\\*/g, '$1');\n        const prefixoLimpo = (h.prefixo || '').replace(/[🔥⭐🚀💡👾]/g, '').trim();\n        return `\n        <div style=\"margin-bottom:${i < hypes.length - 1 ? '20px' : '0'};padding-bottom:${i < hypes.length - 1 ? '20px' : '0'};border-bottom:${i < hypes.length - 1 ? '1px dashed #EDE8DC' : 'none'};display:table;width:100%;\">\n          \n          <div style=\"display:table-cell;vertical-align:top;width:44px;\">\n            <div style=\"width:36px;height:36px;background:#2C1A0E;border-radius:50%;text-align:center;line-height:36px;\">\n              <span style=\"color:#C9B99A;font-size:13px;font-weight:700;font-family:Georgia,serif;\">0${i + 1}</span>\n            </div>\n          </div>\n\n          <div style=\"display:table-cell;vertical-align:top;padding-left:12px;\">\n            <span style=\"font-size:11px;font-weight:700;color:#A67C52;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;\">${prefixoLimpo}</span>\n            ${h.link\n              ? `<a href=\"${h.link}\" style=\"font-size:14px;color:#2C1A0E;text-decoration:underline;font-weight:600;line-height:1.4;display:block;margin-bottom:4px;\">${textoLimpo}</a>`\n              : `<span style=\"font-size:14px;color:#2C1A0E;font-weight:600;line-height:1.4;display:block;margin-bottom:4px;\">${textoLimpo}</span>`\n            }\n            ${h.estrelas ? `<span style=\"font-size:12px;color:#A0856C;\">⭐ ${h.estrelas.toLocaleString('pt-BR')} estrelas no GitHub</span>` : ''}\n          </div>\n\n        </div>\n      `}).join('')}\n\n    </div>\n  `;\n}\n\nfunction gerarArtigos(artigos) {\n  return artigos.map(a => {\n    const cor = coresCategoria[a.categoria] || coresCategoria['Sem Categoria'];\n    const dataArtigo = a.dataPublicacao ? new Date(a.dataPublicacao).toLocaleDateString('pt-BR') : 'Recente';\n    \n    // Estimativa de leitura (média 200 palavras/min)\n    const palavras = (a.resumo || '').split(' ').length;\n    const minutos = Math.max(1, Math.ceil(palavras / 200));\n    \n    const resumoComLink = a.resumo\n      ? converterNegrito(a.resumo) + (a.link ? ` <a href=\"${a.link}\" style=\"color:#8B5E3C;text-decoration:underline;font-style:italic;\">(Leia o artigo completo)</a>` : '')\n      : '';\n\n    return `\n      <div style=\"text-align:center;color:#C9B99A;letter-spacing:8px;font-size:16px;margin:36px 0 28px;\">• • • •</div>\n\n      <!-- Badge categoria -->\n      <div style=\"text-align:center;margin-bottom:12px;\">\n        <span style=\"background:${cor.light};color:${cor.bg};font-size:11px;font-weight:600;padding:3px 12px;border-radius:12px;letter-spacing:0.5px;\">${a.categoria || 'IA'}</span>\n      </div>\n\n      <!-- Data e tempo de leitura -->\n      <div style=\"text-align:center;color:#A0856C;font-size:12px;margin-bottom:16px;display:flex;justify-content:center;gap:16px;\">\n        <span>📅 ${dataArtigo}</span>\n        <span>⏱️ ${minutos} min de leitura</span>\n      </div>\n\n      <!-- Título criativo grande -->\n      <h2 style=\"font-family:Georgia,serif;font-size:32px;font-weight:800;color:#2C1A0E;text-align:center;line-height:1.25;margin:0 0 10px 0;letter-spacing:-0.5px;\">\n        ${a.tituloCriativo || a.titulo || ''}\n      </h2>\n\n      <!-- Título original traduzido -->\n      <p style=\"text-align:center;font-size:13px;color:#9C8070;font-style:italic;margin:0 0 20px 0;\">\n        ${a.tituloTraduzido || a.titulo || ''}\n      </p>\n\n      <!-- Imagem com overlay gradiente -->\n      ${a.imagemUrl ? `\n      <div style=\"position:relative;width:100%;height:240px;border-radius:16px;overflow:hidden;margin-bottom:20px;\">\n        <img \n          src=\"${a.imagemUrl}\"\n          alt=\"${(a.tituloCriativo || a.titulo || '').replace(/\"/g, '')}\"\n          style=\"width:100%;height:240px;object-fit:cover;display:block;\"\n        />\n        <div style=\"position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to top, rgba(44,26,14,0.85) 0%, transparent 100%);border-radius:0 0 16px 16px;\"></div>\n        <div style=\"position:absolute;bottom:16px;left:16px;right:16px;\">\n          <span style=\"background:${cor.bg};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;\">${a.categoria || 'IA'}</span>\n        </div>\n      </div>` : ''}\n\n      <!-- Resumo -->\n      <div style=\"font-size:16px;color:#3D2B1F;line-height:1.85;text-align:justify;margin-bottom:16px;\">\n        ${resumoComLink}\n      </div>\n\n      <!-- Tendência -->\n      ${a.tendencia ? `\n      <p style=\"font-size:14px;color:#6B4F3A;font-style:italic;margin:0 0 16px 0;padding-left:12px;border-left:3px solid #C9B99A;\">\n        📈 ${a.tendencia}\n      </p>` : ''}\n\n      <!-- Palavras-chave -->\n      ${a.palavrasChave && a.palavrasChave.length > 0 ? `\n      <div style=\"margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px;\">\n        ${a.palavrasChave.map(p => `\n          <span style=\"background:${cor.tag};color:${cor.bg};font-size:11px;padding:3px 10px;border-radius:10px;font-weight:500;\">#${p}</span>\n        `).join('')}\n      </div>` : ''}\n    `;\n  }).join('');\n}\n\nfunction gerarSecoes() {\n  return categorias.map(cat => {\n    return `\n      <div style=\"margin-bottom:24px;\">\n        ${gerarArtigos(cat.artigos)}\n      </div>\n    `;\n  }).join('');\n}\n\nconst html = `\n<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Intelligence Newsletter — Inteli Academy</title>\n</head>\n<body style=\"margin:0;padding:0;background:#F5F0E8;font-family:'Segoe UI',Arial,sans-serif;\">\n\n  <div style=\"background:#2C1A0E;padding:52px 24px;text-align:center;\">\n\n    <img src=\"https://raw.githubusercontent.com/lucaskarter/newsletterSemanalIA/refs/heads/main/in.png\" \n       alt=\"Intelligence Newsletter Logo\" \n       style=\"max-width: 200px; height: auto; border-radius: 12px; margin-bottom: 24px; object-fit: contain;\">\n    \n    <h1 style=\"margin:0 0 8px 0;color:#FAF7F2;font-family:Georgia,serif;font-size:34px;font-weight:700;letter-spacing:-0.5px;\">Intelligence Newsletter</h1>\n    <p style=\"margin:0 0 16px 0;color:#C9B99A;font-size:15px;\">Newsletter Semanal de IA</p>\n    <div style=\"display:inline-block;border:1px solid #C9B99A;padding:8px 20px;border-radius:20px;\">\n      <span style=\"color:#EDE8DC;font-size:13px;\">📅 ${geradoEm}</span>\n    </div>\n  </div>\n\n  <div style=\"max-width:640px;margin:0 auto;padding:40px 24px 0;\">\n\n    <div style=\"background:#FAF7F2;border-radius:16px;padding:28px;margin-bottom:32px;text-align:center;border:1px solid #EDE8DC;\">\n      <p style=\"margin:0 0 8px 0;font-size:12px;color:#A0856C;text-transform:uppercase;letter-spacing:2px;\">Esta semana em IA</p>\n      <div style=\"font-size:52px;font-weight:700;color:#2C1A0E;font-family:Georgia,serif;margin:8px 0;line-height:1;\">${totalArtigos}</div>\n      <p style=\"margin:0;font-size:14px;color:#6B4F3A;\">artigos curados e categorizados para você</p>\n    </div>\n\n    ${gerarHypes()}\n\n    ${gerarSecoes()}\n\n    <div style=\"text-align:center;color:#C9B99A;letter-spacing:8px;font-size:16px;margin:36px 0;\">• • • •</div>\n\n    <div style=\"background:#2C1A0E;border-radius:16px;padding:36px;margin-bottom:36px;text-align:center;\">\n      <h2 style=\"margin:0 0 16px 0;color:#FAF7F2;font-family:Georgia,serif;font-size:22px;\">A Inteligência Artificial em 5 minutos</h2>\n      \n      <p style=\"color:#C9B99A;font-size:15px;line-height:1.6;margin:0 0 16px 0;\">\n        Somos uma newsletter gratuita e semanal, com o objetivo de trazer tudo o que você precisa saber para começar a sua semana atualizado e à frente no mercado tecnológico.\n      </p>\n      \n      <p style=\"color:#C9B99A;font-size:15px;line-height:1.6;margin:0 0 16px 0;\">\n        Notícias, de fato, relevantes sobre as principais novidades de <strong>IA Generativa, Machine Learning, Visão Computacional e as inovações das gigantes da tecnologia</strong>.\n      </p>\n      \n      <p style=\"color:#FAF7F2;font-size:15px;line-height:1.6;font-weight:600;margin:0;\">\n        Direto na sua caixa de entrada, toda segunda-feira.\n      </p>\n\n      <div style=\"margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);\">\n        <p style=\"margin:0;color:rgba(255,255,255,0.35);font-size:12px;\">\n          Uma iniciativa <strong>Intelligence Newsletter</strong> • Curadoria impulsionada por IA\n        </p>\n      </div>\n    </div>\n\n    <div style=\"text-align:center;padding-bottom:48px;\">\n      <p style=\"color:#A0856C;font-size:12px;margin:0;\">© ${new Date().getFullYear()} Intelligence Newsletter • Todos os direitos reservados</p>\n    </div>\n\n  </div>\n\n</body>\n</html>\n`;\n\nreturn [{ json: { html, totalArtigos, geradoEm } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -240
+      ],
+      "id": "152cecc9-a7cd-4449-a05c-df85f4349bc6",
+      "name": "Gerar HTML da Newsletter"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1952,
+        -240
+      ],
+      "id": "2690127e-d549-4279-bd88-c12d6e52790a",
+      "name": "Confirmar execução"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/ugcPosts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Restli-Protocol-Version",
+              "value": "2.0.0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer AQW0JzYJ_5MuA_mOVM7TkAH5JbAGyZkNo-ted9Pqoo4DCtssWJA1XHdBjmfDryrzFu1srKoRJU4QRUCWs5R7A5HM0ibNlkthiNFH_fmUzQhnkEtCDjMdBRsXWWPwkyzdOOoHHc5JXm3FHIvWVdL7fCuXw1XYtS5JqRmBxmybtVaqY2vJlX49NZDY-bbHJ0wSgKZrt1VCGxeilZ-50JzLy9usRmYx99BRrdgG428QMjuUUuENzWMazg0Ceo8HOaC8w-2bs149wwOpFc8EETeDjtFFHMxFSq2AX8WZz6qk3aj4IWqLAIaKLZfs5B9gLz3MSb5yPJK-t-SODLJlrCT6mrfsv-fycA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($input.first().json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2192,
+        -512
+      ],
+      "id": "22a1a04a-f5ed-476c-be17-8a7f2ed3ef26",
+      "name": "Postar no Linkedin"
+    },
+    {
+      "parameters": {
+        "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; n8n-bot/1.0)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        320,
+        960
+      ],
+      "id": "9ad8c6d5-6fe5-4f7c-9a78-17e77b89f958",
+      "name": "Buscar Feed The Verge AI"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/search/repositories?q=artificial+intelligence+machine+learning&sort=stars&order=desc&per_page=10",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; n8n-bot/1.0)"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        64,
+        -320
+      ],
+      "id": "7fb04ae5-2b7e-4aee-a6c2-4104675e301e",
+      "name": "Buscar GitHub Trending AI"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst repos = items[0].json.items || [];\n\nconst extraidos = repos.slice(0, 5).map(repo => {\n  const descricao = repo.description || 'Sem descrição disponível';\n  \n  // Remove caracteres especiais e mantém apenas ASCII + português básico\n  const descricaoLimpa = descricao\n    .replace(/[\\u4e00-\\u9fff]/g, '') // Remove chinês\n    .replace(/[\\u3040-\\u309f]/g, '') // Remove japonês hiragana\n    .replace(/[\\u30a0-\\u30ff]/g, '') // Remove japonês katakana\n    .replace(/[\\u0400-\\u04ff]/g, '') // Remove cirílico\n    .replace(/[\\u0600-\\u06ff]/g, '') // Remove árabe\n    .trim();\n\n  return {\n    titulo: repo.full_name || '',\n    link: repo.html_url || '',\n    descricao: descricaoLimpa || 'Repositório de IA no GitHub',\n    dataPublicacao: repo.updated_at || '',\n    categoria: 'Sem Categoria',\n    estrelas: repo.stargazers_count || 0,\n    linguagem: repo.language || 'N/A',\n    fonte: 'GitHub Trending'\n  };\n});\n\nreturn extraidos.map(a => ({ json: a }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "f9560382-28c1-4d30-b73c-90b0d7dc00cc",
+      "name": "Extrair dados GitHub"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst raw = items[0].json.data || '';\n\nconst palavrasChaveIA = ['ai', 'artificial intelligence', 'machine learning', 'chatgpt', 'openai', 'llm', 'deep learning', 'neural', 'anthropic', 'gemini', 'copilot', 'robot', 'automation'];\n\nconst entradas = [...raw.matchAll(/<entry>([\\s\\S]*?)<\\/entry>/g)].map(m => m[1]);\n\nconst artigos = entradas.map(entrada => {\n  const titulo = (entrada.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/) || [])[1] || '';\n  const link = (entrada.match(/<link[^>]*href=\"([^\"]*)\"/) || [])[1] || '';\n  const data = (entrada.match(/<updated>(.*?)<\\/updated>/) || [])[1] || '';\n  const descricao = (entrada.match(/<summary[^>]*>([\\s\\S]*?)<\\/summary>/) || [])[1] || '';\n  const conteudo = (entrada.match(/<content[^>]*>([\\s\\S]*?)<\\/content>/) || [])[1] || '';\n\n  return {\n    titulo: titulo.replace(/<!\\[CDATA\\[(.*?)\\]\\]>/g, '$1').trim(),\n    link: link.trim(),\n    descricao: (descricao || conteudo).replace(/<[^>]+>/g, '').replace(/&[^;]+;/g, ' ').slice(0, 300).trim(),\n    dataPublicacao: data.trim(),\n    categoria: 'Sem Categoria',\n    fonte: 'The Verge AI'\n  };\n}).filter(a => {\n  const textoCompleto = (a.titulo + ' ' + a.descricao).toLowerCase();\n  return palavrasChaveIA.some(palavra => textoCompleto.includes(palavra));\n});\n\nreturn artigos.slice(0, 5).filter(a => a.titulo).map(a => ({ json: a }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        992
+      ],
+      "id": "d98e277d-f2a0-46f5-958d-1d9caf8e6499",
+      "name": "Extrair Dados The Verge"
+    },
+    {
+      "parameters": {
+        "fromEmail": "lucas.silva@sou.inteli.edu.br",
+        "toEmail": "lucasmembros@gmail.com",
+        "subject": "🧠 Intelligence Newsletter",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1664,
+        16
+      ],
+      "id": "eb4d8e5e-e97f-4e5b-83c2-59645f3dade9",
+      "name": "Enviar newletter por email",
+      "webhookId": "d8753e7a-b7da-4f7d-91e4-156f2c4f1a3f",
+      "credentials": {
+        "smtp": {
+          "id": "u45tT9Z0HPx6aJJo",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        1744
+      ],
+      "id": "ff40b25b-da39-41a5-b47f-6ea3570ced01",
+      "name": "Merge",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -160
+      ],
+      "id": "0b4e6f43-6449-469a-8aae-7642ca7ed707",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "vHav0GxRV8No9qwC",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Dada o título do repositório: {{ $json.titulo }} e a descrição: {{ $json.descricao }}, reescreva em uma frase cativante que chame a atenção do leitor.",
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        400,
+        -320
+      ],
+      "id": "52ccb916-18ec-48da-9f65-cea857c32ac2",
+      "name": "IA copy github"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        -688
+      ],
+      "id": "0e768453-746a-43b9-9e5e-f760ffcd3cd3",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "vHav0GxRV8No9qwC",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Recebi estes 5 artigos de IA desta semana. Analise todos eles, identifique qual é o mais impactante/relevante para o público do LinkedIn e escreva o post viral focado apenas nesse artigo escolhido:\n\n{{ $json.conteudo_para_selecao }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Você é um Social Media Manager de alto nível, especialista em LinkedIn, trabalhando para a 'Intelligence Newsletter'. Sua missão é analisar as notícias de Inteligência Artificial da semana e criar UM post focado apenas na notícia mais impactante.  REGRAS ESTRITAS DE FORMATAÇÃO E ESTILO:  ZERO MARKDOWN: É PROIBIDO usar formatação com asteriscos (**) para negrito, hashes (#) para títulos ou travessões (-) para listas. Escreva estritamente em texto plano.  ZERO EMOJIS: Não utilize nenhum tipo de emoji no texto. O visual deve ser corporativo, sério e minimalista.  ZERO LISTAS: Não crie 'bullet points'. Desenvolva as ideias de forma dissertativa.  ESTRUTURA E PARÁGRAFOS: Escreva em parágrafos curtos (máximo de 3 linhas por parágrafo). Você DEVE pular uma linha em branco entre cada parágrafo para criar respiro visual e facilitar a leitura.  ESTRUTURA DO POST:  Um parágrafo de introdução com um gancho forte sobre a notícia principal.  Dois ou três parágrafos curtos de desenvolvimento explicando o impacto dessa notícia para o mercado de tecnologia e IA.  Um parágrafo final fazendo uma pergunta analítica aos leitores'.  Uma linha final com 3 hashtags relevantes."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1504,
+        -832
+      ],
+      "id": "c61ba632-9808-440b-ae60-e59271205817",
+      "name": "IA copywritter"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1872,
+        -832
+      ],
+      "id": "c7eb322a-fce6-4c1d-9613-6f7e431cd588",
+      "name": "Wait",
+      "webhookId": "f3682e13-ba76-437e-bb1b-b5836b36e468"
+    },
+    {
+      "parameters": {
+        "fromEmail": "lucas.silva@sou.inteli.edu.br",
+        "toEmail": "lucasmembros@gmail.com",
+        "subject": "⚠️ Aprovação Necessária: Post do LinkedIn",
+        "html": "=Olá! Aqui está o rascunho do post do LinkedIn desta semana:\n<br><br>\n<i>{{ $json.text }}</i> <br><br>\nSe estiver tudo certo e você quiser postar agora mesmo, clique no link abaixo:\n<br><br>\n<a href=\"{{ $resumeWebhookUrl }}\" style=\"background-color: #0a66c2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">✅ APROVAR E POSTAR NO LINKEDIN</a>\n<br><br>\nSe não gostar, basta ignorar este e-mail e o post não será feito.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1744,
+        -528
+      ],
+      "id": "52918ebc-bbb4-4032-8e93-aa64c25a6208",
+      "name": "Send an Email",
+      "webhookId": "3c8bb6ae-f84a-4a4c-9e48-fd8b85ad4019",
+      "credentials": {
+        "smtp": {
+          "id": "u45tT9Z0HPx6aJJo",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Une todos os resumos e títulos num único bloco de texto\nconst listaParaIA = items.map((item, index) => {\n  return `ARTIGO ${index + 1}:\n  Título: ${item.json.tituloCriativo || item.json.titulo}\n  Resumo: ${item.json.resumo}\n  Link: ${item.json.link}`;\n}).join('\\n\\n---\\n\\n');\n\nreturn [{\n  json: {\n    conteudo_para_selecao: listaParaIA\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -528
+      ],
+      "id": "8b2fda17-1d50-46b3-aabd-d5c56573f1f5",
+      "name": "Juntar Artigos"
+    },
+    {
+      "parameters": {
+        "jsCode": "const texto = $('IA copywritter').first().json.text || '';\n\n// Converte \\n literal para quebra de linha real\nconst textoLimpo = texto\n  .replace(/\\\\n/g, '\\n')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim()\n  .slice(0, 3000);\n\nreturn [{\n  json: {\n    author: \"urn:li:person:kQDTmtcQ2u\",\n    lifecycleState: \"PUBLISHED\",\n    specificContent: {\n      \"com.linkedin.ugc.ShareContent\": {\n        shareCommentary: {\n          text: textoLimpo\n        },\n        shareMediaCategory: \"NONE\"\n      }\n    },\n    visibility: {\n      \"com.linkedin.ugc.MemberNetworkVisibility\": \"PUBLIC\"\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        -512
+      ],
+      "id": "57082f97-a9e1-4f5d-b71c-c325962e8bc7",
+      "name": "Formatar Post LinkedIn"
+    },
+    {
+      "parameters": {
+        "content": "## Recolha de fontes\n**GitHub e TechCrunch**",
+        "height": 592,
+        "width": 1088
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -160,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "de6db674-a923-4a00-9a35-931c47357de0",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Envio para o email\n**Newsletter pelo email e configuração do HTML**",
+        "height": 528,
+        "width": 832,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1328,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "fec3565c-9f95-4c15-9787-1ab07e291d90",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Envio de post para o LinkedIn\n**Human In The Loop com confirmação pelo email**",
+        "height": 560,
+        "width": 1072,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1312,
+        -912
+      ],
+      "typeVersion": 1,
+      "id": "b0205fc3-c1cd-43be-af14-73d3946febd2",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst agora = new Date().toLocaleString('pt-BR', {\n  timeZone: 'America/Sao_Paulo',\n  weekday: 'long',\n  year: 'numeric',\n  month: 'long',\n  day: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\nreturn [{\n  json: {\n    status: '✅ Newsletter enviada com sucesso!',\n    totalArtigos: data.totalArtigos || 0,\n    geradoEm: data.geradoEm || agora,\n    enviadoEm: agora,\n    mensagem: `A newsletter AI Weekly Digest foi gerada com ${data.totalArtigos || 0} artigos e enviada com sucesso em ${agora}.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        -240
+      ],
+      "id": "a60fd691-db4e-4063-9bf3-26845d6d149c",
+      "name": "Verificação de estabilidade"
+    },
+    {
+      "parameters": {
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/?paged=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-agent",
+              "value": "Mozilla/5.0 (compatible; n8n-bot/1.0)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        752,
+        880
+      ],
+      "id": "37cf001f-4885-4287-81d3-b41d80a0ca90",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gatilho da Segunda-feira": {
+      "main": [
+        [
+          {
+            "node": "Buscar GitHub Trending AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar TechCrunch AI": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Artigos da Semana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Artigos da Semana": {
+      "main": [
+        [
+          {
+            "node": "Categorizar e resumir com IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Categorizar e resumir com IA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Categorizar e resumir com IA": {
+      "main": [
+        [
+          {
+            "node": "Parsear resposta da IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear resposta da IA": {
+      "main": [
+        [
+          {
+            "node": "Agrupar por categoria",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Juntar Artigos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar por categoria": {
+      "main": [
+        [
+          {
+            "node": "Gerar HTML da Newsletter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar HTML da Newsletter": {
+      "main": [
+        [
+          {
+            "node": "Enviar newletter por email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postar no Linkedin": {
+      "main": [
+        []
+      ]
+    },
+    "Buscar Feed The Verge AI": {
+      "main": [
+        [
+          {
+            "node": "Extrair Dados The Verge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar GitHub Trending AI": {
+      "main": [
+        [
+          {
+            "node": "Extrair dados GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair dados GitHub": {
+      "main": [
+        [
+          {
+            "node": "IA copy github",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Dados The Verge": {
+      "main": [
+        []
+      ]
+    },
+    "Enviar newletter por email": {
+      "main": [
+        [
+          {
+            "node": "Verificação de estabilidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        []
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IA copy github",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA copy github": {
+      "main": [
+        [
+          {
+            "node": "Buscar TechCrunch AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IA copywritter",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA copywritter": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Formatar Post LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar Artigos": {
+      "main": [
+        [
+          {
+            "node": "IA copywritter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Post LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Postar no Linkedin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificação de estabilidade": {
+      "main": [
+        [
+          {
+            "node": "Confirmar execução",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e2851650-9f02-44d0-ad46-952130b5dc44",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3b3ebd04b10b210a238c88e9be807b7cb167b61171f6dade97696b02267a8808"
+  },
+  "id": "oCz6A1Vro4L1a0Y7",
+  "tags": []
+}
